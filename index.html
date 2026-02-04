@@ -1,123 +1,113 @@
-     <!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <title>Vera Sky Harmony｜Day0</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body {
-      margin: 0;
-      font-family: "Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
-      background: #f7f9f7;
-      color: #222;
+import express from "express";
+import fetch from "node-fetch";
+
+const app = express();
+app.use(express.json());
+
+// ===== 設定 =====
+const CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
+
+// ===== Day0 正式メッセージ =====
+const DAY0_MESSAGE = `
+【タイトル】
+ようこそ、Vera Sky Harmony へ
+― あなたは「選ばれた」のではありません。「気づいた」のです ―
+________________________________________
+【本文】
+はじめまして。
+そして、ここまで辿り着いてくださり、ありがとうございます。
+あなたは今、
+売り込みも、説得も、勧誘もされていません。
+それにも関わらず、
+ここに辿り着いたという事実そのものが、
+とても重要な意味を持っています。
+________________________________________
+これからあなたが目にするのは、
+・誰かに依存しない
+・人に気を遣わない
+・無理をしない
+・我慢を前提としない
+それでいて、
+「健康」と「繁栄」が同時に広がっていく仕組みです。
+________________________________________
+Vera Sky Harmony（VSH）は、
+従来のMLMの常識をすべて捨てて設計されました。
+・人が頑張る → ❌
+・人が説明する → ❌
+・人が教育する → ❌
+・人が拡散する → ❌
+これらはすべて、AIが担います。
+あなたがすることは、
+「理解すること」と「選択すること」だけです。
+________________________________________
+この仕組みは、
+✔ 経験
+✔ 年齢
+✔ 人脈
+✔ 話術
+いずれも一切問いません。
+なぜなら、
+人の能力に依存しない設計だからです。
+________________________________________
+ここから数日間、
+あなたは「説明」を受けるのではなく、
+一つの完成されたシステムを体験していきます。
+判断はいつでも自由です。
+押されることも、急かされることもありません。
+________________________________________
+ただ一つだけ、
+大切なことがあります。
+それは――
+「理解してから判断してほしい」ということです。
+________________________________________
+それでは、
+Vera Sky Harmony の世界へ。
+明日は、「なぜこの仕組みが成り立つか」をお伝えします。
+`;
+
+// ===== LINE Webhook =====
+app.post("/webhook", async (req, res) => {
+  const events = req.body.events;
+
+  for (const event of events) {
+    // 「友だち追加」時のみ反応
+    if (event.type === "follow") {
+      const userId = event.source.userId;
+
+      await sendTextMessage(userId, DAY0_MESSAGE);
     }
-    .container {
-      max-width: 430px;
-      margin: 0 auto;
-      padding: 16px;
-    }
-    img {
-      width: 100%;
-      border-radius: 8px;
-    }
-    h1 {
-      font-size: 22px;
-      margin: 20px 0 10px;
-      line-height: 1.4;
-    }
-    p {
-      font-size: 15px;
-      line-height: 1.9;
-      margin: 14px 0;
-    }
-    .line {
-      border-top: 1px solid #ddd;
-      margin: 24px 0;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <img src="IMAGE_URL_HERE" alt="VSH Day0">
+  }
 
-    <h1>
-      ようこそ、Vera Sky Harmony へ<br>
-      ― あなたは「選ばれた」のではありません。「気づいた」のです ―
-    </h1>
+  res.sendStatus(200);
+});
 
-    <p>
-      はじめまして。<br>
-      そして、ここまで辿り着いてくださり、ありがとうございます。
-    </p>
+// ===== メッセージ送信関数 =====
+async function sendTextMessage(userId, text) {
+  const url = "https://api.line.me/v2/bot/message/push";
 
-    <p>
-      あなたは今、<br>
-      売り込みも、説得も、勧誘もされていません。<br>
-      それにも関わらず、ここに辿り着いたという事実そのものが、<br>
-      とても重要な意味を持っています。
-    </p>
+  const body = {
+    to: userId,
+    messages: [
+      {
+        type: "text",
+        text: text
+      }
+    ]
+  };
 
-    <div class="line"></div>
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
+    },
+    body: JSON.stringify(body)
+  });
+}
 
-    <p>
-      これからあなたが目にするのは、<br>
-      ・誰かに依存しない<br>
-      ・人に気を遣わない<br>
-      ・無理をしない<br>
-      ・我慢を前提としない<br>
-      それでいて、<br>
-      「健康」と「繁栄」が同時に広がっていく仕組みです。
-    </p>
+// ===== サーバー起動 =====
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`VSH Day0 server running on port ${PORT}`);
+});
 
-    <div class="line"></div>
-
-    <p>
-      Vera Sky Harmony（VSH）は、<br>
-      従来のMLMの常識をすべて捨てて設計されました。
-    </p>
-
-    <p>
-      人が頑張る → ❌<br>
-      人が説明する → ❌<br>
-      人が教育する → ❌<br>
-      人が拡散する → ❌
-    </p>
-
-    <p>
-      これらはすべて、AIが担います。<br>
-      あなたがすることは、<br>
-      「理解すること」と「選択すること」だけです。
-    </p>
-
-    <div class="line"></div>
-
-    <p>
-      経験・年齢・人脈・話術は一切問いません。<br>
-      人の能力に依存しない設計だからです。
-    </p>
-
-    <p>
-      ここから数日間、<br>
-      あなたは「説明」を受けるのではなく、<br>
-      一つの完成されたシステムを体験していきます。
-    </p>
-
-    <p>
-      押されることも、急かされることもありません。
-    </p>
-
-    <div class="line"></div>
-
-    <p>
-      ただ一つだけ大切なことがあります。<br>
-      <strong>理解してから判断してほしい。</strong>
-    </p>
-
-    <p>
-      それでは、<br>
-      Vera Sky Harmony の世界へ。
-    </p>
-  </div>
-</body>
-</html>
- 
