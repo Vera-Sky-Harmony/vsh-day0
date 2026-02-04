@@ -4,110 +4,59 @@ import fetch from "node-fetch";
 const app = express();
 app.use(express.json());
 
-// ===== 設定 =====
 const CHANNEL_ACCESS_TOKEN = process.env.CHANNEL_ACCESS_TOKEN;
+const ADMIN_USER_ID = "ここに管理者のuserId";
 
-// ===== Day0 正式メッセージ =====
-const DAY0_MESSAGE = `
-【タイトル】
-ようこそ、Vera Sky Harmony へ
+const sentUsers = new Set();
+
+const DAY0_MESSAGE = {
+  type: "text",
+  text: `ようこそ、Vera Sky Harmony へ
 ― あなたは「選ばれた」のではありません。「気づいた」のです ―
-________________________________________
-【本文】
+
 はじめまして。
 そして、ここまで辿り着いてくださり、ありがとうございます。
+
 あなたは今、
 売り込みも、説得も、勧誘もされていません。
 それにも関わらず、
 ここに辿り着いたという事実そのものが、
 とても重要な意味を持っています。
-________________________________________
-これからあなたが目にするのは、
-・誰かに依存しない
-・人に気を遣わない
-・無理をしない
-・我慢を前提としない
-それでいて、
-「健康」と「繁栄」が同時に広がっていく仕組みです。
-________________________________________
-Vera Sky Harmony（VSH）は、
-従来のMLMの常識をすべて捨てて設計されました。
-・人が頑張る → ❌
-・人が説明する → ❌
-・人が教育する → ❌
-・人が拡散する → ❌
-これらはすべて、AIが担います。
-あなたがすることは、
-「理解すること」と「選択すること」だけです。
-________________________________________
-この仕組みは、
-✔ 経験
-✔ 年齢
-✔ 人脈
-✔ 話術
-いずれも一切問いません。
-なぜなら、
-人の能力に依存しない設計だからです。
-________________________________________
-ここから数日間、
-あなたは「説明」を受けるのではなく、
-一つの完成されたシステムを体験していきます。
-判断はいつでも自由です。
-押されることも、急かされることもありません。
-________________________________________
-ただ一つだけ、
-大切なことがあります。
-それは――
-「理解してから判断してほしい」ということです。
-________________________________________
-それでは、
-Vera Sky Harmony の世界へ。
-明日は、「なぜこの仕組みが成り立つか」をお伝えします。
-`;
 
-// ===== LINE Webhook =====
+（以下省略せず全文そのまま入れてください）`
+};
+
 app.post("/webhook", async (req, res) => {
-  const events = req.body.events;
+  const event = req.body.events[0];
+  if (!event) return res.sendStatus(200);
 
-  for (const event of events) {
-    // 「友だち追加」時のみ反応
-    if (event.type === "follow") {
-      const userId = event.source.userId;
+  const userId = event.source?.userId;
+  if (!userId) return res.sendStatus(200);
 
-      await sendTextMessage(userId, DAY0_MESSAGE);
-    }
+  // 管理者除外
+  if (userId === ADMIN_USER_ID) return res.sendStatus(200);
+
+  // 友だち追加のみ
+  if (event.type === "follow") {
+    if (sentUsers.has(userId)) return res.sendStatus(200);
+    sentUsers.add(userId);
+
+    await fetch("https://api.line.me/v2/bot/message/push", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`,
+      },
+      body: JSON.stringify({
+        to: userId,
+        messages: [DAY0_MESSAGE],
+      }),
+    });
   }
 
   res.sendStatus(200);
 });
 
-// ===== メッセージ送信関数 =====
-async function sendTextMessage(userId, text) {
-  const url = "https://api.line.me/v2/bot/message/push";
+app.listen(process.env.PORT || 10000);
 
-  const body = {
-    to: userId,
-    messages: [
-      {
-        type: "text",
-        text: text
-      }
-    ]
-  };
-
-  await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${CHANNEL_ACCESS_TOKEN}`
-    },
-    body: JSON.stringify(body)
-  });
-}
-
-// ===== サーバー起動 =====
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`VSH Day0 server running on port ${PORT}`);
-});
 
